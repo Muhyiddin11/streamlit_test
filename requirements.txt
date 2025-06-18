@@ -1,1 +1,9 @@
+streamlit
 requests
+requests_cache
+retry_requests
+pandas
+pydeck
+numpy
+matplotlib
+geopy
