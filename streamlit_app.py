@@ -4,41 +4,38 @@
 # --------------------------------------------
 
 # --- 🧠 Core Libraries & API Tools ---
-import streamlit as st  # Web UI framework for building interactive user interface
-import requests  # To make API calls
-import pandas as pd  # Data handling for processing the forecast data
-import numpy as np  # Numerical operations for simulations or calculations
-import matplotlib.pyplot as plt  # Plotting pie charts for risk visualization
-import pydeck as pdk  # Interactive map visualization
-from datetime import datetime, timedelta  # Time management to handle dates
-import requests_cache  # Cache for API requests to minimize redundant calls
-from retry_requests import retry  # Retry failed requests to handle connectivity issues
-from geopy.geocoders import Nominatim  # To get latitude and longitude from address input
+import streamlit as st
+import requests
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import pydeck as pdk
+from datetime import datetime, timedelta
+import requests_cache
+from retry_requests import retry
+from geopy.geocoders import Nominatim
 
 # --- 🖼 Page Setup & Styling ---
 st.set_page_config(page_title="Flood Buddy - Malaysia", page_icon="☔", layout="wide")
 
-# Add custom CSS for button styling
 st.markdown("""
 <style>
 .stButton button {
-    background:#28a745;  # Green background color for the button
-    color:#fff;  # White text color
-    font-weight:bold;  # Make text bold
-    border-radius:8px;  # Rounded button edges
+    background:#28a745;
+    color:#fff;
+    font-weight:bold;
+    border-radius:8px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-
 # --- 🔐 API Keys & Session Caching ---
-API_KEY = "1468e5c2a4b24ce7a64140429250306"  # API key for WeatherAPI
-NEWS_API_KEY = "pub_6b426fe08efa4436a4cd58ec988c62e0"  # API key for NewsData.io
-session = retry(requests_cache.CachedSession('.cache', expire_after=3600), retries=5, backoff_factor=0.2)  # Cache session for API requests with retry
-geolocator = Nominatim(user_agent="flood-buddy-app")  # Geopy geolocator to fetch latitude and longitude
+API_KEY = "1468e5c2a4b24ce7a64140429250306"
+NEWS_API_KEY = "pub_6b426fe08efa4436a4cd58ec988c62e0"
+session = retry(requests_cache.CachedSession('.cache', expire_after=3600), retries=5, backoff_factor=0.2)
+geolocator = Nominatim(user_agent="flood-buddy-app")
 
 # --- 🗺 Flood-Prone Locations (Malaysia) ---
-# Defining the flood-prone locations in various states of Malaysia
 flood_map = {
     "Selangor": ["Shah Alam", "Petaling", "Klang", "Gombak", "Hulu Langat", "Sabak Bernam"],
     "Johor": ["Johor Bahru", "Batu Pahat", "Muar", "Kluang", "Segamat", "Kota Tinggi"],
@@ -55,73 +52,37 @@ flood_map = {
     "Perlis": ["Kangar", "Arau"]
 }
 
-
 # --- 🧭 Sidebar: User Input ---
 with st.sidebar:
-    st.markdown("## 🌧 Flood Risk Buddy")  # Sidebar title
-    st.caption("Malaysia Flood Risk Forecast & Updates")  # Sidebar caption
-    st.title("⚙ Settings")  # Settings heading
-    state = st.selectbox("State", list(flood_map.keys()))  # Dropdown for selecting state
-    district = st.selectbox("District", flood_map[state])  # Dropdown for selecting district
-    date = st.date_input("Forecast Date", datetime.today())  # Date input for forecast date
-    coord_override = st.text_input("Or enter coords manually (lat,lon)")  # Input for custom latitude and longitude
-    go = st.button("🔍 Get Forecast")  # Button to fetch forecast
+    st.markdown("## 🌧 Flood Risk Buddy")
+    st.caption("Malaysia Flood Risk Forecast & Updates")
+    st.title("⚙ Settings")
+    state = st.selectbox("State", list(flood_map.keys()))
+    district = st.selectbox("District", flood_map[state])
+    date = st.date_input("Forecast Date", datetime.today())
+    coord_override = st.text_input("Or enter coords manually (lat,lon)")
+    go = st.button("🔍 Get Forecast")
 
 # --- 🧩 Helper Functions ---
 def risk_level(r):
-    """
-    Categorizes the rainfall into different risk levels:
-    - Extreme: Rain > 50 mm
-    - High: 30 < Rain <= 50 mm
-    - Moderate: 10 < Rain <= 30 mm
-    - Low: Rain <= 10 mm
-    """
     return "Extreme" if r > 50 else "High" if r > 30 else "Moderate" if r > 10 else "Low"
 
-
 def tip(l):
-    """
-    Provides tips based on the calculated risk level.
-    Args:
-    l (str): Risk level ("Extreme", "High", "Moderate", or "Low")
-
-    Returns:
-    str: Preparedness tips based on the risk level.
-    """
     return {
         "Extreme": "Evacuate if needed; avoid floodwaters.",
-        "High": "Charge devices; avoid low areas.",
+        "High":     "Charge devices; avoid low areas.",
         "Moderate": "Monitor alerts; stay indoors.",
-        "Low": "Stay aware."
+        "Low":      "Stay aware."
     }[l]
 
-
 def get_coords(state, district):
-    """
-    Gets latitude and longitude from the location using Geopy's Nominatim service.
-    Args:
-    state (str): The state of the district
-    district (str): The district in Malaysia
-
-    Returns:
-    tuple: Latitude and longitude of the location, or None if not found.
-    """
     try:
         location = geolocator.geocode(f"{district}, {state}, Malaysia", timeout=10)
         return (location.latitude, location.longitude)
     except:
         return (None, None)
 
-
 def fetch_news(search_term):
-    """
-    Fetches flood-related news articles based on a search term from the NewsAPI.
-    Args:
-    search_term (str): The keyword to search for in news articles
-
-    Returns:
-    list: List of filtered news articles related to flood in Malaysia.
-    """
     try:
         r = session.get(f"https://newsdata.io/api/1/news?apikey={NEWS_API_KEY}&q={search_term}%20flood%20malaysia")
         results = r.json().get("results", [])
@@ -131,10 +92,8 @@ def fetch_news(search_term):
     except:
         return []
 
-
 # --- 🌧 Forecast Processing ---
 if go:
-    # Get coordinates based on user input or override
     if coord_override and "," in coord_override:
         lat, lon = map(float, coord_override.split(","))
     else:
@@ -165,7 +124,6 @@ if go:
     tabs = st.tabs(["🌧 Forecast", "🗺 Map View", "📈 Trends", "🧭 Risk Overview", "📰 News"])
 
     with tabs[0]:
-        # 💡 Forecast Tab
         lvl = risk_level(max(rain[0], o["daily"]["precipitation_sum"][0]))
         getattr(st, {"Extreme":"error","High":"warning","Moderate":"info","Low":"success"}[lvl])(f"{lvl} today – {tip(lvl)}")
 
@@ -195,30 +153,26 @@ if go:
             st.error("Failed to retrieve historical rainfall.")
 
     with tabs[1]:
-       # --- 🗺 Map View Tab ---
-# Create a DataFrame with latitude, longitude, and intensity data for the map
-    data = pd.DataFrame({
-    "lat": [lat],  # Latitude of the selected location
-    "lon": [lon],  # Longitude of the selected location
-    "intensity": [o["daily"]["precipitation_sum"][0]],  # Rainfall intensity from Open-Meteo API
-    "tooltip": [f"Location: {district}, {state}\nRainfall: {o['daily']['precipitation_sum'][0]} mm"]  # Tooltip content
-})
-
-# Display the map with PyDeck's ScatterplotLayer and tooltip for interactive visualization
-st.pydeck_chart(pdk.Deck(
-    initial_view_state=pdk.ViewState(latitude=lat, longitude=lon, zoom=8),  # Initial map view with zoom and position
-    layers=[pdk.Layer(
-        "ScatterplotLayer",  # Layer type: Scatter plot
-        data=data,  # Data to visualize on the map
-        get_position='[lon, lat]',  # Latitude and longitude for the position
-        get_color='[255, 0, 0, 100]',  # Color of the points (red with transparency)
-        get_radius=10000,  # Size of the radius for each point
-        pickable=True,  # Makes the points clickable for interaction
-        opacity=0.3  # Transparency of the points
-    )],
-    tooltip={"text": "{tooltip}"}  # Display the tooltip when hovering over a point
-))
-
+        # 🌍 Map View Tab
+        data = pd.DataFrame({
+            "lat": [lat],
+            "lon": [lon],
+            "intensity": [o["daily"]["precipitation_sum"][0]],
+            "tooltip": [f"Location: {district}, {state}\nRainfall: {o['daily']['precipitation_sum'][0]} mm"]
+        })
+        st.pydeck_chart(pdk.Deck(
+            initial_view_state=pdk.ViewState(latitude=lat, longitude=lon, zoom=8),
+            layers=[pdk.Layer(
+                "ScatterplotLayer",
+                data=data,
+                get_position='[lon, lat]',
+                get_color='[255, 0, 0, 100]',
+                get_radius=10000,
+                pickable=True,
+                opacity=0.3
+            )],
+            tooltip={"text": "{tooltip}"}
+        ))
 
     with tabs[2]:
         st.subheader("Rainfall Trend")
