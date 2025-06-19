@@ -179,7 +179,7 @@ if go:
         st.line_chart(df.set_index("Date")["Rain (mm)"])
         st.subheader("Humidity Trend")
         st.bar_chart(df.set_index("Date")["Humidity (%)"])
-        st.subheader("Wind Speed Trend")
+        st.subheader("Angin Speed Trend")
         st.area_chart(df.set_index("Date")["Wind (kph)"])
 
     with tabs[3]:
